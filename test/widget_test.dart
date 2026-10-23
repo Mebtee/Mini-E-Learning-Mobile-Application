@@ -78,18 +78,14 @@ void main() {
     await tester.tap(loginButton);
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome, Abebe Kebede!'), findsOneWidget);
+    expect(find.text('Abebe Kebede'), findsOneWidget);
+    expect(find.text('Explore courses'), findsOneWidget);
 
     // Let the registration SnackBar expire so it cannot cover the button.
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
 
-    final Finder logoutButton = find.widgetWithText(
-      OutlinedButton,
-      'Log out',
-    );
-    await tester.ensureVisible(logoutButton);
-    await tester.pumpAndSettle();
+    final Finder logoutButton = find.byKey(const Key('homeLogoutButton'));
     await tester.tap(logoutButton);
     await tester.pumpAndSettle();
 
