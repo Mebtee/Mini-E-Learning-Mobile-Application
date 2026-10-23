@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 
 import 'screens/auth_gate.dart';
+import 'services/course_service.dart';
 
 void main() {
   runApp(const ELearningApp());
 }
 
 class ELearningApp extends StatelessWidget {
-  const ELearningApp({super.key});
+  const ELearningApp({super.key, this.courseService});
+
+  /// Optional injection point for tests; production uses the asset loader.
+  final CourseService? courseService;
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +66,7 @@ class ELearningApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const AuthGate(),
+      home: AuthGate(courseService: courseService),
     );
   }
 }

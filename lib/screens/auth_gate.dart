@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../models/auth_user.dart';
 import '../services/auth_service.dart';
+import '../services/course_service.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 import 'welcome_screen.dart';
 
 /// Decides which screen to show based on the restored login session.
 class AuthGate extends StatefulWidget {
-  const AuthGate({super.key});
+  const AuthGate({super.key, this.courseService});
+
+  final CourseService? courseService;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -65,6 +68,10 @@ class _AuthGateState extends State<AuthGate> {
       return LoginScreen(onLoggedIn: _handleLoggedIn);
     }
 
-    return HomeScreen(user: user, onLoggedOut: _handleLoggedOut);
+    return HomeScreen(
+      user: user,
+      onLoggedOut: _handleLoggedOut,
+      courseService: widget.courseService,
+    );
   }
 }
