@@ -3,15 +3,24 @@ import 'package:flutter/material.dart';
 import '../models/auth_user.dart';
 import '../services/auth_service.dart';
 import '../services/course_service.dart';
+import '../services/download_service.dart';
+import '../services/lesson_video_controller.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 import 'welcome_screen.dart';
 
 /// Decides which screen to show based on the restored login session.
 class AuthGate extends StatefulWidget {
-  const AuthGate({super.key, this.courseService});
+  const AuthGate({
+    super.key,
+    this.courseService,
+    this.downloadService,
+    this.videoControllerFactory,
+  });
 
   final CourseService? courseService;
+  final DownloadService? downloadService;
+  final LessonVideoControllerFactory? videoControllerFactory;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -20,13 +29,26 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   final AuthService _authService = AuthService();
 
+  late final DownloadService _downloadService;
+  late final bool _ownsDownloadService;
+
   AuthUser? _currentUser;
   bool _isRestoringSession = true;
 
   @override
   void initState() {
     super.initState();
+    _ownsDownloadService = widget.downloadService == null;
+    _downloadService = widget.downloadService ?? DownloadService();
     _restoreSession();
+  }
+
+  @override
+  void dispose() {
+    if (_ownsDownloadService) {
+      _downloadService.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _restoreSession() async {
@@ -72,6 +94,8 @@ class _AuthGateState extends State<AuthGate> {
       user: user,
       onLoggedOut: _handleLoggedOut,
       courseService: widget.courseService,
+      downloadService: _downloadService,
+      videoControllerFactory: widget.videoControllerFactory,
     );
   }
 }

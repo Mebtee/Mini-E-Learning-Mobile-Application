@@ -10,6 +10,8 @@ import 'package:mini_e_learning/models/course.dart';
 import 'package:mini_e_learning/services/auth_service.dart';
 import 'package:mini_e_learning/services/course_service.dart';
 
+import 'support/fakes.dart';
+
 class _TestCourseService extends CourseService {
   _TestCourseService(this.courses);
 
@@ -66,10 +68,18 @@ Future<void> _signIn() async {
   expect(login.isSuccess, isTrue);
 }
 
+late FakeDownloadService _downloadService;
+
 Future<void> _pumpSignedInApp(WidgetTester tester) async {
   await _signIn();
   await tester.pumpWidget(
-    ELearningApp(courseService: _TestCourseService(_loadCoursesFromFile())),
+    ELearningApp(
+      courseService: _TestCourseService(_loadCoursesFromFile()),
+      downloadService: _downloadService,
+      videoControllerFactory: createFakeVideoControllerFactory(
+        <FakeLessonVideoController>[],
+      ),
+    ),
   );
   await tester.pumpAndSettle();
 }
@@ -77,6 +87,11 @@ Future<void> _pumpSignedInApp(WidgetTester tester) async {
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
+    _downloadService = FakeDownloadService();
+  });
+
+  tearDown(() {
+    _downloadService.dispose();
   });
 
   testWidgets('course dashboard lists courses and filters with search', (
@@ -158,11 +173,11 @@ void main() {
     await tester.tap(lessonTile);
     await tester.pumpAndSettle();
 
-    expect(find.text('Lesson preview'), findsOneWidget);
+    expect(find.text('Lesson'), findsOneWidget);
     expect(find.text('What is Flutter?'), findsOneWidget);
     expect(find.text('18 min'), findsWidgets);
-    expect(find.textContaining('flutter.github.io'), findsOneWidget);
-    expect(find.textContaining('Video playback will be added'), findsOneWidget);
+    expect(find.byKey(const Key('fakeVideoView')), findsOneWidget);
+    expect(find.byKey(const Key('lessonDownloadButton')), findsOneWidget);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -184,7 +199,15 @@ void main() {
       _loadCoursesFromFile(),
     );
 
-    await tester.pumpWidget(ELearningApp(courseService: courseService));
+    await tester.pumpWidget(
+      ELearningApp(
+        courseService: courseService,
+        downloadService: _downloadService,
+        videoControllerFactory: createFakeVideoControllerFactory(
+          <FakeLessonVideoController>[],
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Could not load courses'), findsOneWidget);

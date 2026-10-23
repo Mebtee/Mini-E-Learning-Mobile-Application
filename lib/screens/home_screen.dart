@@ -4,6 +4,8 @@ import '../models/auth_user.dart';
 import '../models/course.dart';
 import '../services/auth_service.dart';
 import '../services/course_service.dart';
+import '../services/download_service.dart';
+import '../services/lesson_video_controller.dart';
 import '../widgets/catalog_message.dart';
 import '../widgets/course_card.dart';
 import 'course_details_screen.dart';
@@ -14,11 +16,15 @@ class HomeScreen extends StatefulWidget {
     required this.user,
     required this.onLoggedOut,
     this.courseService,
+    required this.downloadService,
+    this.videoControllerFactory,
   });
 
   final AuthUser user;
   final VoidCallback onLoggedOut;
   final CourseService? courseService;
+  final DownloadService downloadService;
+  final LessonVideoControllerFactory? videoControllerFactory;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -86,7 +92,11 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (BuildContext context) {
-          return CourseDetailsScreen(course: course);
+          return CourseDetailsScreen(
+            course: course,
+            downloadService: widget.downloadService,
+            videoControllerFactory: widget.videoControllerFactory,
+          );
         },
       ),
     );

@@ -2,16 +2,25 @@ import 'package:flutter/material.dart';
 
 import 'screens/auth_gate.dart';
 import 'services/course_service.dart';
+import 'services/download_service.dart';
+import 'services/lesson_video_controller.dart';
 
 void main() {
   runApp(const ELearningApp());
 }
 
 class ELearningApp extends StatelessWidget {
-  const ELearningApp({super.key, this.courseService});
+  const ELearningApp({
+    super.key,
+    this.courseService,
+    this.downloadService,
+    this.videoControllerFactory,
+  });
 
-  /// Optional injection point for tests; production uses the asset loader.
+  /// Optional injection points for tests; production uses the default loaders.
   final CourseService? courseService;
+  final DownloadService? downloadService;
+  final LessonVideoControllerFactory? videoControllerFactory;
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +75,11 @@ class ELearningApp extends StatelessWidget {
           ),
         ),
       ),
-      home: AuthGate(courseService: courseService),
+      home: AuthGate(
+        courseService: courseService,
+        downloadService: downloadService,
+        videoControllerFactory: videoControllerFactory,
+      ),
     );
   }
 }

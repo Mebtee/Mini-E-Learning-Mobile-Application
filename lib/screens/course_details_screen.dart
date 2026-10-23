@@ -1,19 +1,33 @@
 import 'package:flutter/material.dart';
 
 import '../models/course.dart';
+import '../services/download_service.dart';
+import '../services/lesson_video_controller.dart';
 import '../widgets/course_thumbnail.dart';
 import 'lesson_screen.dart';
 
 class CourseDetailsScreen extends StatelessWidget {
-  const CourseDetailsScreen({super.key, required this.course});
+  const CourseDetailsScreen({
+    super.key,
+    required this.course,
+    required this.downloadService,
+    this.videoControllerFactory,
+  });
 
   final Course course;
+  final DownloadService downloadService;
+  final LessonVideoControllerFactory? videoControllerFactory;
 
   void _openLesson(BuildContext context, Lesson lesson) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (BuildContext context) {
-          return LessonScreen(lesson: lesson, courseTitle: course.title);
+          return LessonScreen(
+            lesson: lesson,
+            courseTitle: course.title,
+            downloadService: downloadService,
+            videoControllerFactory: videoControllerFactory,
+          );
         },
       ),
     );
