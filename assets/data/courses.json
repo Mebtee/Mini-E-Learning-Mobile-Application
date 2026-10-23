@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "courses": [
+    {
+      "id": "flutter-fundamentals",
+      "title": "Flutter Fundamentals",
+      "description": "Build cross-platform mobile apps from scratch with widgets, layouts, and navigation.",
+      "instructor": "Selam Tesfaye",
+      "category": "Mobile Development",
+      "thumbnail": "assets/images/courses/flutter_fundamentals.png",
+      "totalDurationMinutes": 97,
+      "chapters": [
+        {
+          "id": "flutter-ch-1",
+          "title": "Getting Started with Flutter",
+          "lessons": [
+            {
+              "id": "flutter-1-1",
+              "title": "What is Flutter?",
+              "durationMinutes": 18,
+              "videoUrl": "https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4",
+              "videoType": "mp4"
+            },
+            {
+              "id": "flutter-1-2",
+              "title": "Your First Widget",
+              "durationMinutes": 25,
+              "videoUrl": "https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4",
+              "videoType": "mp4"
+            }
+          ]
+        },
+        {
+          "id": "flutter-ch-2",
+          "title": "Layouts and Navigation",
+          "lessons": [
+            {
+              "id": "flutter-2-1",
+              "title": "Building Responsive Layouts",
+              "durationMinutes": 32,
+              "videoUrl": "https://media.w3.org/2010/05/bunny/trailer.mp4",
+              "videoType": "mp4"
+            },
+            {
+              "id": "flutter-2-2",
+              "title": "Navigating Between Screens",
+              "durationMinutes": 22,
+              "videoUrl": "https://media.w3.org/2010/05/sintel/trailer.mp4",
+              "videoType": "mp4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "python-data-analysis",
+      "title": "Python for Data Analysis",
+      "description": "Use Python, Pandas, and visualization tools to turn raw datasets into clear insights.",
+      "instructor": "Daniel Bekele",
+      "category": "Data Science",
+      "thumbnail": "assets/images/courses/python_data_analysis.png",
+      "totalDurationMinutes": 125,
+      "chapters": [
+        {
+          "id": "python-ch-1",
+          "title": "Python Essentials",
+          "lessons": [
+            {
+              "id": "python-1-1",
+              "title": "Variables and Data Types",
+              "durationMinutes": 24,
+              "videoUrl": "https://media.w3.org/2010/05/video/movie_300.mp4",
+              "videoType": "mp4"
+            },
+            {
+              "id": "python-1-2",
+              "title": "Working with Lists and Dictionaries",
+              "durationMinutes": 29,
+              "videoUrl": "https://mdn.github.io/shared-assets/videos/flower.mp4",
+              "videoType": "mp4"
+            }
+          ]
+        },
+        {
+          "id": "python-ch-2",
+          "title": "Analyzing Real Data",
+          "lessons": [
+            {
+              "id": "python-2-1",
+              "title": "Cleaning Data with Pandas",
+              "durationMinutes": 38,
+              "videoUrl": "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4",
+              "videoType": "mp4"
+            },
+            {
+              "id": "python-2-2",
+              "title": "Visualizing Insights",
+              "durationMinutes": 34,
+              "videoUrl": "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
+              "videoType": "mp4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ui-ux-design",
+      "title": "UI/UX Design Essentials",
+      "description": "Learn design thinking, visual hierarchy, and prototyping to craft user-friendly products.",
+      "instructor": "Hana Girma",
+      "category": "Design",
+      "thumbnail": "assets/images/courses/ui_ux_design.png",
+      "totalDurationMinutes": 105,
+      "chapters": [
+        {
+          "id": "design-ch-1",
+          "title": "Design Foundations",
+          "lessons": [
+            {
+              "id": "design-1-1",
+              "title": "Design Thinking Basics",
+              "durationMinutes": 20,
+              "videoUrl": "https://filesamples.com/samples/video/mp4/sample_640x360.mp4",
+              "videoType": "mp4"
+            },
+            {
+              "id": "design-1-2",
+              "title": "Color, Typography, and Spacing",
+              "durationMinutes": 26,
+              "videoUrl": "https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4",
+              "videoType": "mp4"
+            }
+          ]
+        },
+        {
+          "id": "design-ch-2",
+          "title": "From Wireframe to Prototype",
+          "lessons": [
+            {
+              "id": "design-2-1",
+              "title": "Wireframing a Mobile App",
+              "durationMinutes": 31,
+              "videoUrl": "https://media.w3.org/2010/05/bunny/trailer.mp4",
+              "videoType": "mp4"
+            },
+            {
+              "id": "design-2-2",
+              "title": "Prototyping and Usability Testing",
+              "durationMinutes": 28,
+              "videoUrl": "https://media.w3.org/2010/05/sintel/trailer.mp4",
+              "videoType": "mp4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "javascript-web-development",
+      "title": "JavaScript Web Development",
+      "description": "Master the JavaScript fundamentals needed to build interactive, data-driven web pages.",
+      "instructor": "Yonas Alemu",
+      "category": "Web Development",
+      "thumbnail": "assets/images/courses/javascript_web_dev.png",
+      "totalDurationMinutes": 112,
+      "chapters": [
+        {
+          "id": "javascript-ch-1",
+          "title": "JavaScript Foundations",
+          "lessons": [
+            {
+              "id": "javascript-1-1",
+              "title": "Variables, Functions, and Scope",
+              "durationMinutes": 22,
+              "videoUrl": "https://media.w3.org/2010/05/video/movie_300.mp4",
+              "videoType": "mp4"
+            },
+            {
+              "id": "javascript-1-2",
+              "title": "Understanding the DOM",
+              "durationMinutes": 27,
+              "videoUrl": "https://mdn.github.io/shared-assets/videos/flower.mp4",
+              "videoType": "mp4"
+            }
+          ]
+        },
+        {
+          "id": "javascript-ch-2",
+          "title": "Building Interactive Pages",
+          "lessons": [
+            {
+              "id": "javascript-2-1",
+              "title": "Events and Form Validation",
+              "durationMinutes": 33,
+              "videoUrl": "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4",
+              "videoType": "mp4"
+            },
+            {
+              "id": "javascript-2-2",
+              "title": "Fetching Data with APIs",
+              "durationMinutes": 30,
+              "videoUrl": "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
+              "videoType": "mp4"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
