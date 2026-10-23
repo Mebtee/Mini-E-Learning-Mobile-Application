@@ -1,30 +1,129 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mini_e_learning/main.dart';
+import 'package:mini_e_learning/services/auth_service.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  setUp(() {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  testWidgets('shows the login screen when there is no saved session', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const ELearningApp());
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.byKey(const Key('loginEmailField')), findsOneWidget);
+    expect(find.byKey(const Key('loginPasswordField')), findsOneWidget);
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('register, log in, and log out flow', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const ELearningApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('loginRegisterButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create your account'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('registerNameField')),
+      'Abebe Kebede',
+    );
+    await tester.enterText(
+      find.byKey(const Key('registerEmailField')),
+      'abebe@example.com',
+    );
+    await tester.enterText(
+      find.byKey(const Key('registerPasswordField')),
+      'secret123',
+    );
+    await tester.enterText(
+      find.byKey(const Key('registerConfirmPasswordField')),
+      'secret123',
+    );
+    final Finder registerButton = find.byKey(
+      const Key('registerSubmitButton'),
+    );
+    await tester.ensureVisible(registerButton);
+    await tester.pumpAndSettle();
+    await tester.tap(registerButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome back'), findsOneWidget);
+    expect(
+      find.text(
+        'Account created successfully. Please log in with your new account.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('loginEmailField')),
+      'abebe@example.com',
+    );
+    await tester.enterText(
+      find.byKey(const Key('loginPasswordField')),
+      'secret123',
+    );
+    final Finder loginButton = find.byKey(const Key('loginSubmitButton'));
+    await tester.ensureVisible(loginButton);
+    await tester.pumpAndSettle();
+    await tester.tap(loginButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome, Abebe Kebede!'), findsOneWidget);
+
+    // Let the registration SnackBar expire so it cannot cover the button.
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+
+    final Finder logoutButton = find.widgetWithText(
+      OutlinedButton,
+      'Log out',
+    );
+    await tester.ensureVisible(logoutButton);
+    await tester.pumpAndSettle();
+    await tester.tap(logoutButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome back'), findsOneWidget);
+  });
+
+  testWidgets('shows a save-session error message for wrong credentials', (
+    WidgetTester tester,
+  ) async {
+    await AuthService().register(
+      name: 'Abebe Kebede',
+      email: 'abebe@example.com',
+      password: 'secret123',
+    );
+
+    await tester.pumpWidget(const ELearningApp());
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('loginEmailField')),
+      'abebe@example.com',
+    );
+    await tester.enterText(
+      find.byKey(const Key('loginPasswordField')),
+      'wrong-password',
+    );
+    await tester.tap(find.byKey(const Key('loginSubmitButton')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Invalid email or password. Please check your details and try again.',
+      ),
+      findsOneWidget,
+    );
   });
 }
