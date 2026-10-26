@@ -118,12 +118,12 @@ void main() {
 
     await tester.enterText(
       find.byKey(const Key('courseSearchField')),
-      'Hana Girma',
+      'Tamene Behailu',
     );
     await tester.pumpAndSettle();
 
     expect(find.text('UI/UX Design Essentials'), findsOneWidget);
-    expect(find.text('Python for Data Analysis'), findsNothing);
+    expect(find.text('Python for Data Analysis'), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const Key('courseSearchField')),

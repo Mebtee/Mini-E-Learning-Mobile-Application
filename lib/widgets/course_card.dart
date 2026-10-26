@@ -4,14 +4,24 @@ import '../models/course.dart';
 import 'course_thumbnail.dart';
 
 class CourseCard extends StatelessWidget {
-  const CourseCard({super.key, required this.course, required this.onTap});
+  const CourseCard({
+    super.key,
+    required this.course,
+    required this.onTap,
+    this.completedLessons = 0,
+  });
 
   final Course course;
   final VoidCallback onTap;
+  final int completedLessons;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final int totalLessons = course.lessonCount;
+    final double progress = totalLessons == 0
+        ? 0
+        : completedLessons / totalLessons;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -104,6 +114,34 @@ class CourseCard extends StatelessWidget {
                             style: theme.textTheme.bodySmall?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        key: Key('courseProgress-${course.id}'),
+                        value: progress,
+                        minHeight: 6,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        Text(
+                          '$completedLessons of $totalLessons lessons',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${(progress * 100).round()}%',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],

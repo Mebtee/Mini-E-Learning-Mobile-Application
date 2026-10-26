@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/auth_user.dart';
@@ -6,9 +8,11 @@ import '../services/auth_service.dart';
 import '../services/course_service.dart';
 import '../services/download_service.dart';
 import '../services/lesson_video_controller.dart';
+import '../services/progress_service.dart';
 import '../widgets/catalog_message.dart';
 import '../widgets/course_card.dart';
 import 'course_details_screen.dart';
+import 'lesson_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -18,6 +22,7 @@ class HomeScreen extends StatefulWidget {
     this.courseService,
     required this.downloadService,
     this.videoControllerFactory,
+    this.progressService,
   });
 
   final AuthUser user;
@@ -25,6 +30,7 @@ class HomeScreen extends StatefulWidget {
   final CourseService? courseService;
   final DownloadService downloadService;
   final LessonVideoControllerFactory? videoControllerFactory;
+  final ProgressService? progressService;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -35,6 +41,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   late final CourseService _courseService;
+  late final ProgressService _progressService;
+  late final bool _ownsProgressService;
   late Future<List<Course>> _coursesFuture;
   String _searchQuery = '';
   bool _isLoggingOut = false;
@@ -44,12 +52,27 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _courseService = widget.courseService ?? CourseService();
     _coursesFuture = _courseService.loadCourses();
+    _ownsProgressService = widget.progressService == null;
+    _progressService =
+        widget.progressService ?? ProgressService(userKey: widget.user.email);
+    _progressService.addListener(_handleProgressChanged);
+    unawaited(_progressService.load());
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _progressService.removeListener(_handleProgressChanged);
+    if (_ownsProgressService) {
+      _progressService.dispose();
+    }
     super.dispose();
+  }
+
+  void _handleProgressChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _logout() async {
@@ -96,10 +119,45 @@ class _HomeScreenState extends State<HomeScreen> {
             course: course,
             downloadService: widget.downloadService,
             videoControllerFactory: widget.videoControllerFactory,
+            progressService: _progressService,
           );
         },
       ),
     );
+  }
+
+  void _openLesson(Course course, Lesson lesson) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) {
+          return LessonScreen(
+            lesson: lesson,
+            course: course,
+            courseTitle: course.title,
+            downloadService: widget.downloadService,
+            videoControllerFactory: widget.videoControllerFactory,
+            progressService: _progressService,
+          );
+        },
+      ),
+    );
+  }
+
+  Course? _findContinueCourse(List<Course> courses) {
+    Course? bestCourse;
+    int bestCompleted = 0;
+
+    for (final Course course in courses) {
+      final int completed = _progressService.completedCount(course);
+      if (completed > 0 &&
+          completed < course.lessonCount &&
+          completed > bestCompleted) {
+        bestCourse = course;
+        bestCompleted = completed;
+      }
+    }
+
+    return bestCourse;
   }
 
   @override
@@ -126,15 +184,12 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: FutureBuilder<List<Course>>(
           future: _coursesFuture,
-          builder: (
-            BuildContext context,
-            AsyncSnapshot<List<Course>> snapshot,
-          ) {
+          builder: (BuildContext context, AsyncSnapshot<List<Course>> snapshot) {
             final bool isLoading =
                 snapshot.connectionState == ConnectionState.waiting;
-            final List<Course> allCourses =
-                snapshot.data ?? const <Course>[];
+            final List<Course> allCourses = snapshot.data ?? const <Course>[];
             final List<Course> visibleCourses = _filterCourses(allCourses);
+            final Course? continueCourse = _findContinueCourse(allCourses);
             final Object? error = snapshot.error;
 
             return LayoutBuilder(
@@ -154,6 +209,22 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _WelcomeHeader(user: widget.user),
+                          if (continueCourse != null) ...[
+                            const SizedBox(height: 20),
+                            _ContinueLearningCard(
+                              course: continueCourse,
+                              completedLessons: _progressService.completedCount(
+                                continueCourse,
+                              ),
+                              onContinue: () {
+                                final Lesson? lesson = _progressService
+                                    .nextIncompleteLesson(continueCourse);
+                                if (lesson != null) {
+                                  _openLesson(continueCourse, lesson);
+                                }
+                              },
+                            ),
+                          ],
                           const SizedBox(height: 28),
                           _CatalogHeading(
                             courseCount: isLoading ? null : allCourses.length,
@@ -221,13 +292,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                     crossAxisCount: crossAxisCount,
                                     crossAxisSpacing: 16,
                                     mainAxisSpacing: 16,
-                                    mainAxisExtent: 460,
+                                    mainAxisExtent: 510,
                                   ),
                               itemBuilder: (BuildContext context, int index) {
                                 final Course course = visibleCourses[index];
                                 return CourseCard(
                                   key: Key('courseCard-${course.id}'),
                                   course: course,
+                                  completedLessons: _progressService
+                                      .completedCount(course),
                                   onTap: () => _openCourse(course),
                                 );
                               },
@@ -241,6 +314,90 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _ContinueLearningCard extends StatelessWidget {
+  const _ContinueLearningCard({
+    required this.course,
+    required this.completedLessons,
+    required this.onContinue,
+  });
+
+  final Course course;
+  final int completedLessons;
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final int totalLessons = course.lessonCount;
+    final double progress = totalLessons == 0
+        ? 0
+        : completedLessons / totalLessons;
+    final int remaining = totalLessons - completedLessons;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.auto_stories_rounded,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Continue learning',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            course.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(value: progress, minHeight: 8),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$completedLessons of $totalLessons lessons complete'
+            '${remaining == 1 ? ' • 1 lesson left' : ' • $remaining lessons left'}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+              key: const Key('continueLearningButton'),
+              onPressed: onContinue,
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: const Text('Continue'),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -357,9 +514,7 @@ class _CatalogHeading extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withValues(
-                alpha: 0.5,
-              ),
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
