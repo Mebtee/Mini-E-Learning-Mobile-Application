@@ -7,20 +7,25 @@ import 'package:flutter/material.dart';
 import '../models/course.dart';
 import '../services/download_service.dart';
 import '../services/lesson_video_controller.dart';
+import '../services/progress_service.dart';
 
 class LessonScreen extends StatefulWidget {
   const LessonScreen({
     super.key,
     required this.lesson,
     required this.courseTitle,
+    this.course,
     this.downloadService,
     this.videoControllerFactory,
+    this.progressService,
   });
 
   final Lesson lesson;
   final String courseTitle;
+  final Course? course;
   final DownloadService? downloadService;
   final LessonVideoControllerFactory? videoControllerFactory;
+  final ProgressService? progressService;
 
   @override
   State<LessonScreen> createState() => _LessonScreenState();
@@ -30,11 +35,14 @@ class _LessonScreenState extends State<LessonScreen> {
   late final DownloadService _downloadService;
   late final bool _ownsDownloadService;
   late final LessonVideoControllerFactory _videoControllerFactory;
+  late final ProgressService _progressService;
+  late final bool _ownsProgressService;
 
   LessonVideoController? _videoController;
   DownloadState _downloadState = DownloadState.initial;
   File? _localFile;
   bool _isPreparingVideo = true;
+  bool _hasHandledVideoEnd = false;
   String? _playbackError;
 
   @override
@@ -44,7 +52,14 @@ class _LessonScreenState extends State<LessonScreen> {
     _downloadService = widget.downloadService ?? DownloadService();
     _videoControllerFactory =
         widget.videoControllerFactory ?? createLessonVideoController;
+    _ownsProgressService = widget.progressService == null;
+    _progressService =
+        widget.progressService ?? ProgressService(userKey: 'guest');
     _downloadService.addListener(_handleDownloadChanged);
+    _progressService.addListener(_handleProgressChanged);
+    if (_ownsProgressService) {
+      unawaited(_progressService.load());
+    }
     unawaited(_prepareLesson());
   }
 
@@ -73,6 +88,110 @@ class _LessonScreenState extends State<LessonScreen> {
     });
 
     await _createVideoController(localFile);
+  }
+
+  List<Lesson> get _courseLessons {
+    final Course? course = widget.course;
+    if (course == null) {
+      return const <Lesson>[];
+    }
+    return course.chapters
+        .expand((Chapter chapter) => chapter.lessons)
+        .toList(growable: false);
+  }
+
+  int get _lessonIndex {
+    return _courseLessons.indexWhere(
+      (Lesson lesson) => lesson.id == widget.lesson.id,
+    );
+  }
+
+  Lesson? get _previousLesson {
+    final int index = _lessonIndex;
+    return index > 0 ? _courseLessons[index - 1] : null;
+  }
+
+  Lesson? get _nextLesson {
+    final int index = _lessonIndex;
+    final List<Lesson> lessons = _courseLessons;
+    return index >= 0 && index < lessons.length - 1 ? lessons[index + 1] : null;
+  }
+
+  bool get _isCompleted {
+    return _progressService.isCompleted(widget.lesson.id);
+  }
+
+  void _handleProgressChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _markLessonCompleted({bool announce = true}) async {
+    final bool added = await _progressService.markCompleted(widget.lesson.id);
+    if (!mounted || !added || !announce) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Lesson marked as completed.')),
+    );
+  }
+
+  Future<void> _handleVideoCompleted() async {
+    await _markLessonCompleted(announce: false);
+    if (!mounted) {
+      return;
+    }
+
+    final Lesson? next = _nextLesson;
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          next == null
+              ? 'You completed the last lesson in this course.'
+              : 'Lesson completed.',
+        ),
+        action: next == null
+            ? null
+            : SnackBarAction(
+                label: 'Next lesson',
+                onPressed: () => _goToLesson(next, replace: true),
+              ),
+      ),
+    );
+  }
+
+  void _goToLesson(Lesson lesson, {required bool replace}) {
+    if (!mounted) {
+      return;
+    }
+
+    final Course? course = widget.course;
+    if (course == null) {
+      return;
+    }
+
+    final Route<void> route = MaterialPageRoute<void>(
+      builder: (BuildContext context) {
+        return LessonScreen(
+          lesson: lesson,
+          course: course,
+          courseTitle: widget.courseTitle,
+          downloadService: widget.downloadService,
+          videoControllerFactory: widget.videoControllerFactory,
+          progressService: _ownsProgressService ? null : _progressService,
+        );
+      },
+    );
+
+    if (replace) {
+      Navigator.of(context).pushReplacement(route);
+    } else {
+      Navigator.of(context).push(route);
+    }
   }
 
   Future<void> _createVideoController(
@@ -104,6 +223,7 @@ class _LessonScreenState extends State<LessonScreen> {
     }
 
     controller.addListener(_handleVideoChanged);
+    _hasHandledVideoEnd = false;
     if (mounted) {
       setState(() {
         _videoController = controller;
@@ -139,6 +259,12 @@ class _LessonScreenState extends State<LessonScreen> {
     if (!mounted || controller == null) {
       return;
     }
+
+    if (controller.hasEnded && !_hasHandledVideoEnd) {
+      _hasHandledVideoEnd = true;
+      unawaited(_handleVideoCompleted());
+    }
+
     setState(() {});
   }
 
@@ -184,10 +310,14 @@ class _LessonScreenState extends State<LessonScreen> {
   @override
   void dispose() {
     _downloadService.removeListener(_handleDownloadChanged);
+    _progressService.removeListener(_handleProgressChanged);
     _videoController?.removeListener(_handleVideoChanged);
     _videoController?.dispose();
     if (_ownsDownloadService) {
       _downloadService.dispose();
+    }
+    if (_ownsProgressService) {
+      _progressService.dispose();
     }
     super.dispose();
   }
@@ -256,7 +386,29 @@ class _LessonScreenState extends State<LessonScreen> {
                           label: 'Available offline',
                           highlighted: true,
                         ),
+                      if (_isCompleted)
+                        const _LessonChip(
+                          icon: Icons.check_circle_rounded,
+                          label: 'Completed',
+                          highlighted: true,
+                        ),
                     ],
+                  ),
+                  const SizedBox(height: 18),
+                  FilledButton.icon(
+                    key: const Key('lessonCompleteButton'),
+                    onPressed: _isCompleted ? null : _markLessonCompleted,
+                    icon: Icon(
+                      _isCompleted
+                          ? Icons.check_circle_rounded
+                          : Icons.check_circle_outline_rounded,
+                    ),
+                    label: Text(
+                      _isCompleted ? 'Completed' : 'Mark as completed',
+                    ),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   _buildDownloadCard(theme),
@@ -269,6 +421,44 @@ class _LessonScreenState extends State<LessonScreen> {
                       height: 1.4,
                     ),
                   ),
+                  if (widget.course != null) ...[
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            key: const Key('previousLessonButton'),
+                            onPressed: _previousLesson == null
+                                ? null
+                                : () => _goToLesson(
+                                    _previousLesson!,
+                                    replace: true,
+                                  ),
+                            icon: const Icon(Icons.arrow_back_rounded),
+                            label: const Text('Previous'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton.icon(
+                            key: const Key('nextLessonButton'),
+                            onPressed: _nextLesson == null
+                                ? null
+                                : () =>
+                                      _goToLesson(_nextLesson!, replace: true),
+                            icon: const Icon(Icons.arrow_forward_rounded),
+                            label: const Text('Next lesson'),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   OutlinedButton.icon(
                     onPressed: () => Navigator.of(context).pop(),

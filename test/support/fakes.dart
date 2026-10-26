@@ -94,6 +94,13 @@ class FakeLessonVideoController extends LessonVideoController {
     notifyListeners();
   }
 
+  void completePlayback() {
+    _isPlaying = false;
+    _hasEnded = true;
+    _position = videoDuration;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _isDisposed = true;
