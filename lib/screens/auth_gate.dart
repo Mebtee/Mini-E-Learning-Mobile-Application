@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/course_service.dart';
 import '../services/download_service.dart';
 import '../services/lesson_video_controller.dart';
+import '../widgets/catalog_message.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 import 'welcome_screen.dart';
@@ -34,6 +35,7 @@ class _AuthGateState extends State<AuthGate> {
 
   AuthUser? _currentUser;
   bool _isRestoringSession = true;
+  String? _restoreError;
 
   @override
   void initState() {
@@ -52,23 +54,37 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _restoreSession() async {
-    AuthUser? user;
+    if (!_isRestoringSession || _restoreError != null) {
+      setState(() {
+        _isRestoringSession = true;
+        _restoreError = null;
+      });
+    }
 
     try {
-      user = await _authService.restoreSession();
+      final AuthUser? user = await _authService.restoreSession();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _currentUser = user;
+        _isRestoringSession = false;
+      });
     } catch (error) {
       debugPrint('Could not restore the login session: $error');
-      user = null;
-    }
 
-    if (!mounted) {
-      return;
-    }
+      if (!mounted) {
+        return;
+      }
 
-    setState(() {
-      _currentUser = user;
-      _isRestoringSession = false;
-    });
+      setState(() {
+        _restoreError =
+            'Your saved session could not be restored. Please try again.';
+        _isRestoringSession = false;
+      });
+    }
   }
 
   void _handleLoggedIn(AuthUser user) {
@@ -82,7 +98,18 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     if (_isRestoringSession) {
-      return const WelcomeScreen();
+      return const WelcomeScreen(
+        isLoading: true,
+        message: 'Restoring your session...',
+      );
+    }
+
+    final String? restoreError = _restoreError;
+    if (restoreError != null) {
+      return _SessionErrorScreen(
+        message: restoreError,
+        onRetry: _restoreSession,
+      );
     }
 
     final AuthUser? user = _currentUser;
@@ -96,6 +123,32 @@ class _AuthGateState extends State<AuthGate> {
       courseService: widget.courseService,
       downloadService: _downloadService,
       videoControllerFactory: widget.videoControllerFactory,
+    );
+  }
+}
+
+class _SessionErrorScreen extends StatelessWidget {
+  const _SessionErrorScreen({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: CatalogMessage(
+          icon: Icons.sync_problem_rounded,
+          title: 'Could not restore your session',
+          message: message,
+          action: FilledButton.icon(
+            key: const Key('sessionRetryButton'),
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Retry'),
+          ),
+        ),
+      ),
     );
   }
 }
